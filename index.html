@@ -274,14 +274,14 @@ function App(){
               <td style={{padding:"10px 12px"}}><div style={{cursor:"pointer",color:row.jobText?"#e8e4dc":"#444",fontSize:"12px",lineHeight:"1.4"}} onClick={()=>setExpandedRow(expandedRow===row.id?null:row.id)}>{row.jobText?row.jobText.slice(0,75)+(row.jobText.length>75?"…":""):"View Details"}</div></td>
               <td style={{padding:"10px 12px"}}><EditableCell value={row.claudeSummary} onChange={v=>updateRow(row.id,"claudeSummary",v)} placeholder="Trigger Gemini AI →" multiline/></td>
               <td style={{padding:"10px 12px"}}><span style={{color:row.claudeHours?"#c9b8ff":"#333",fontSize:"12px"}}>{row.claudeHours||"—"}</span></td>
-              <td style={{padding:"10px 12px"}}><span style={{color:CX[row.complexity]||"#555",fontSize:"11px",fontWeight:600}}>{row.complexity||"—"}</span></td>
+              <td style={{padding:"10px 12px"}...}><span style={{color:CX[row.complexity]||"#555",fontSize:"11px",fontWeight:600}}>{row.complexity||"—"}</span></td>
               <td style={{padding:"10px 12px"}}><span style={{color:row.claudePricing?"#6fcf97":"#333",fontSize:"12px"}}>{row.claudePricing||"—"}</span></td>
               <td style={{padding:"10px 12px"}}><EditableCell value={row.smeHours} onChange={v=>updateRow(row.id,"smeHours",v)} placeholder="hrs"/></td>
               <td style={{padding:"10px 12px"}}><EditableCell value={row.bdPrice} onChange={v=>updateRow(row.id,"bdPrice",v)} placeholder="quote rate"/></td>
               <td style={{padding:"10px 12px"}}><div style={{display:"flex",alignItems:"center",gap:"4px"}}><EditableCell value={row.connects} onChange={v=>updateRow(row.id,"connects",v)} placeholder="—"/>{row.connects&&<span style={{color:"#f2994a",fontSize:"10px"}}>🔗</span>}</div></td>
               <td style={{padding:"10px 12px"}}><button onClick={()=>setProposalRow(row)} disabled={!row.jobText} style={{background:row.proposal?"#0a2a0a":"#1e1e3a",color:row.proposal?"#27ae60":"#7c83ff",border:`1px solid ${row.proposal?"#1a4d1a":"#2d2d5e"}`,borderRadius:"6px",padding:"4px 10px",fontSize:"10px",fontFamily:"'DM Mono',monospace",fontWeight:600,cursor:row.jobText?"pointer":"not-allowed",whiteSpace:"nowrap"}}>{row.proposal?"✓ Edit Copy":"✦ Gemini Draft"}</button></td>
               <td style={{padding:"10px 12px"}}><EditableCell value={row.notes} onChange={v=>updateRow(row.id,"notes",v)} placeholder="Add transaction note…" multiline/></td>
-              <td style={{padding:"10px 12px"}...}><StatusBadge status={row.status} onChange={v=>updateRow(row.id,"status",v)}/></td>
+              <td style={{padding:"10px 12px"}}><StatusBadge status={row.status} onChange={v=>updateRow(row.id,"status",v)}/></td>
               <td style={{padding:"10px 12px"}}><button onClick={()=>runGemini(row)} disabled={!row.jobText||loadingId===row.id} style={{background:loadingId===row.id?"#1a1a2e":"#1e1e3a",color:loadingId===row.id?"#7c83ff88":"#7c83ff",border:"1px solid #2d2d5e",borderRadius:"6px",padding:"5px 10px",fontSize:"10px",fontFamily:"'DM Mono',monospace",fontWeight:600,cursor:row.jobText&&loadingId!==row.id?"pointer":"not-allowed"}}>{loadingId===row.id?"…":"Run AI"}</button></td>
             </tr>
             {expandedRow===row.id&&<tr style={{background:"#0a0a12",borderBottom:"1px solid #1e1e1e"}}>
@@ -294,62 +294,4 @@ function App(){
                   <div>
                     <div style={{color:"#555",fontSize:"9px",letterSpacing:"0.15em",marginBottom:"8px"}}>OPERATIONAL CHECKLIST GRID</div>
                     {[{l:"Target logged in pipeline",d:!!row.jobText},{l:"Gemini structural parameter analysis run",d:!!row.claudeSummary},{l:"Token connects tracked",d:!!row.connects},{l:"Technical assessment complete",d:!!row.smeHours},{l:"Strategic price alignment mapped",d:!!row.bdPrice},{l:"Pitch draft created",d:!!row.proposal},{l:"Contract transaction complete",d:["Proposal Sent","Won","Lost"].includes(row.status)}].map(s=>(
-                      <div key={s.l} style={{display:"flex",alignItems:"center",gap:"10px",marginBottom:"8px"}}>
-                        <span style={{width:"16px",height:"16px",borderRadius:"4px",background:s.d?"#0a2a0a":"#1a1a1a",border:`1px solid ${s.d?"#27ae60":"#2a2a2a"}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"9px",color:s.d?"#27ae60":"#333",flexShrink:0}}>{s.d?"✓":""}</span>
-                        <span style={{color:s.d?"#888":"#444",fontSize:"12px",textDecoration:s.d?"line-through":"none"}}>{s.l}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </td>
-            </tr>}
-          </React.Fragment>)}
-        </tbody>
-      </table>
-    </div>
-
-    <div style={{color:"#2a2a2a",fontSize:"10px",marginTop:"16px",textAlign:"center",letterSpacing:"0.1em"}}>EVERY EDIT SAVES LOCALLY + SYNCS TO GOOGLE SHEETS · ✦ AI ANALYSE & PROPOSAL</div>
-
-    {/* Add Modal */}
-    {showAddModal&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:999}}>
-      <div style={{background:"#111",border:"1px solid #2a2a2a",borderRadius:"16px",padding:"32px",width:"540px",maxWidth:"92vw"}}>
-        <h2 style={{color:"#e8e4dc",fontFamily:"'Syne',sans-serif",fontWeight:800,margin:"0 0 24px",fontSize:"20px"}}>Log Upwork Target</h2>
-        {[{label:"TARGET POSITION LINK",key:"url",ph:"https://upwork.com/jobs/…"},{label:"CONNECTS BUDGET",key:"connects",ph:"e.g. 16"}].map(f=>(
-          <div key={f.key} style={{marginBottom:"16px"}}>
-            <label style={{color:"#555",fontSize:"10px",letterSpacing:"0.15em",display:"block",marginBottom:"6px"}}>{f.label}</label>
-            <input value={newJob[f.key]} onChange={e=>setNewJob({...newJob,[f.key]:e.target.value})} placeholder={f.ph} style={{width:"100%",background:"#1a1a1a",border:"1px solid #2a2a2a",borderRadius:"8px",color:"#e8e4dc",padding:"10px 12px",fontSize:"12px",fontFamily:"'DM Mono',monospace",outline:"none"}}/>
-          </div>
-        ))}
-        <div style={{marginBottom:"24px"}}>
-          <label style={{color:"#555",fontSize:"10px",letterSpacing:"0.15em",display:"block",marginBottom:"6px"}}>PASTE TARGET BODY TEXT</label>
-          <textarea value={newJob.jobText} onChange={e=>setNewJob({...newJob,jobText:e.target.value})} rows={6} placeholder="Paste raw Upwork description parameters here…" style={{width:"100%",background:"#1a1a1a",border:"1px solid #2a2a2a",borderRadius:"8px",color:"#e8e4dc",padding:"10px 12px",fontSize:"12px",fontFamily:"'DM Mono',monospace",outline:"none",resize:"vertical",lineHeight:"1.6"}}/>
-        </div>
-        <div style={{display:"flex",gap:"10px",justifyContent:"flex-end"}}>
-          <button onClick={()=>setShowAddModal(false)} style={{background:"transparent",color:"#555",border:"1px solid #2a2a2a",borderRadius:"8px",padding:"8px 20px",fontSize:"12px",fontFamily:"'DM Mono',monospace",cursor:"pointer"}}>Cancel</button>
-          <button onClick={addJob} disabled={!newJob.jobText} style={{background:newJob.jobText?"#e8e4dc":"#0d0d0d",color:newJob.jobText?"#0d0d0d":"#333",border:"none",borderRadius:"8px",padding:"8px 20px",fontSize:"12px",fontFamily:"'Syne',sans-serif",fontWeight:700,cursor:newJob.jobText?"pointer":"not-allowed"}}>Commit to Flow →</button>
-        </div>
-      </div>
-    </div>}
-
-    {/* Agency Framework Profile Editor */}
-    {showContextEditor&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.88)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:999}}>
-      <div style={{background:"#111",border:"1px solid #2a2a2a",borderRadius:"16px",padding:"32px",width:"620px",maxWidth:"92vw"}}>
-        <h2 style={{color:"#e8e4dc",fontFamily:"'Syne',sans-serif",fontWeight:800,margin:"0 0 8px",fontSize:"18px"}}>Consultancy Framework Profile</h2>
-        <p style={{color:"#555",fontSize:"12px",marginBottom:"20px",lineHeight:"1.6"}}>Paste core company metrics, strategic capability structures, and differentiators. The Gemini engine ingests this system profile context to build conversion-engineered pitch copy.</p>
-        <textarea value={agencyContext} onChange={e=>setAgencyContext(e.target.value)} rows={12} style={{width:"100%",background:"#0d0d0d",border:"1px solid #2a2a2a",borderRadius:"10px",color:"#e8e4dc",padding:"14px",fontSize:"12px",fontFamily:"'DM Mono',monospace",lineHeight:"1.7",outline:"none",resize:"vertical",boxSizing:"border-box"}}/>
-        <div style={{display:"flex",gap:"10px",justifyContent:"flex-end",marginTop:"20px"}}>
-          <button onClick={()=>setShowContextEditor(false)} style={{background:"transparent",color:"#555",border:"1px solid #2a2a2a",borderRadius:"8px",padding:"8px 20px",fontSize:"12px",fontFamily:"'DM Mono',monospace",cursor:"pointer"}}>Cancel</button>
-          <button onClick={()=>saveAgencyContext(agencyContext)} style={{background:"#e8e4dc",color:"#0d0d0d",border:"none",borderRadius:"8px",padding:"8px 20px",fontSize:"12px",fontFamily:"'Syne',sans-serif",fontWeight:700,cursor:"pointer"}}>Save System Configuration →</button>
-        </div>
-      </div>
-    </div>}
-
-    {proposalRow&&<ProposalModal key={proposalRow.id} row={proposalRow} agencyContext={agencyContext} onClose={()=>setProposalRow(null)} onSave={text=>{updateRow(proposalRow.id,"proposal",text);showToast("Pitch file updated successfully");}}/>}
-    {toast&&<Toast message={toast.msg} type={toast.type} onDone={()=>setToast(null)}/>}
-  </div>;
-}
-
-ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
-</script>
-</body>
-</html>
+                      <div key={s.l} style={{display:"flex",alignItems:"
