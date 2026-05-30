@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Upwork Bid Tracker</title>
+<title>Upwork Bid Tracker Workspace</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
@@ -21,8 +21,8 @@
 <div id="root"></div>
 <script type="text/babel">
 
-// Google Apps Script Routing URL
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz9TFDJ03XmAaWCUjIp7UM9PVZSZgq9zK25pfDfZw4YpEe6BEETERcMBT3p-4Nl8mJ-/exec";
+// Google Apps Script Web App Endpoint URL
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbys-xMiU4e-Zz3H85waWh5e1LU2FYnlOogys2sXPHSNAz3jU0kni4ZgT4cvER3mnmdb/exec";
 
 const HEADERS = ["id","date","url","jobText","claudeSummary","claudeHours","complexity","claudePricing","smeHours","bdPrice","connects","proposal","notes","status"];
 const STATUS_FLOW = ["New","Under Review","SME Assessed","Proposal Sent","Won","Lost"];
@@ -35,7 +35,7 @@ const STATUS_COLORS = {
   "Lost":          {bg:"#2a0a0a",text:"#eb5757",border:"#4d1a1a"},
 };
 const CX = {"Low":"#6fcf97","Medium":"#f2994a","High":"#eb5757","—":"#555"};
-const LS_KEY = "upwork_tracker_v3";
+const LS_KEY = "gemini_upwork_tracker_v1";
 
 const rowToObj = r => { const o={}; HEADERS.forEach((h,i)=>o[h]=r[i]!==undefined?String(r[i]):""); return o; };
 const objToRow = o => HEADERS.map(h=>o[h]||"");
@@ -88,9 +88,8 @@ function ProposalModal({row,agencyContext,onClose,onSave}){
   const generate=useCallback(async()=>{
     setLoading(true);setText("");
     try{
-      // Safe routing via Apps Script Web App backend proxy router
       const data = await gsPost({
-        action: "claude-proposal",
+        action: "claude-proposal", 
         jobText: row.jobText,
         agencyContext: agencyContext,
         claudeSummary: row.claudeSummary,
@@ -101,10 +100,10 @@ function ProposalModal({row,agencyContext,onClose,onSave}){
       if(data.status === "ok") {
         setText(data.text.trim());
       } else {
-        setText(`Backend API Error: ${data.message || "Unknown error occurred"}`);
+        setText(`Gemini Engine Proxy Refusal: ${data.message || "Execution Error"}`);
       }
     }catch(err){
-      setText("Error calling proxy service — check backend script logs.");
+      setText("Network interface exception occurred. Check Web App configuration constraints.");
     }
     setLoading(false);
   },[row,agencyContext]);
@@ -113,16 +112,16 @@ function ProposalModal({row,agencyContext,onClose,onSave}){
   return <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.88)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:999}}>
     <div style={{background:"#111",border:"1px solid #2a2a2a",borderRadius:"16px",padding:"32px",width:"620px",maxWidth:"92vw",maxHeight:"90vh",overflow:"auto"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"20px"}}>
-        <div><h2 style={{color:"#e8e4dc",fontFamily:"'Syne',sans-serif",fontWeight:800,margin:"0 0 4px",fontSize:"18px"}}>Proposal Draft</h2><div style={{color:"#555",fontSize:"11px"}}>{row.url||"No URL"}</div></div>
+        <div><h2 style={{color:"#e8e4dc",fontFamily:"'Syne',sans-serif",fontWeight:800,margin:"0 0 4px",fontSize:"18px"}}>Gemini Proposal Engine</h2><div style={{color:"#555",fontSize:"11px"}}>{row.url||"No Active URL Linked"}</div></div>
         <button onClick={onClose} style={{background:"transparent",border:"none",color:"#555",fontSize:"20px",cursor:"pointer"}}>×</button>
       </div>
-      {loading?<div style={{display:"flex",alignItems:"center",gap:"12px",padding:"40px 0",justifyContent:"center"}}><div style={{width:"18px",height:"18px",border:"2px solid #2a2a2a",borderTop:"2px solid #7c83ff",borderRadius:"50%",animation:"spin 0.8s linear infinite"}}/><span style={{color:"#555",fontSize:"12px"}}>Writing proposal…</span></div>
+      {loading?<div style={{display:"flex",alignItems:"center",gap:"12px",padding:"40px 0",justifyContent:"center"}}><div style={{width:"18px",height:"18px",border:"2px solid #2a2a2a",borderTop:"2px solid #7c83ff",borderRadius:"50%",animation:"spin 0.8s linear infinite"}}/><span style={{color:"#555",fontSize:"12px"}}>Drafting proposal with Gemini…</span></div>
       :<textarea value={text} onChange={e=>setText(e.target.value)} rows={12} style={{width:"100%",background:"#0d0d0d",border:"1px solid #2a2a2a",borderRadius:"10px",color:"#e8e4dc",padding:"16px",fontSize:"13px",fontFamily:"'DM Mono',monospace",lineHeight:"1.8",outline:"none",resize:"vertical",boxSizing:"border-box"}}/>}
       <div style={{display:"flex",gap:"10px",justifyContent:"flex-end",marginTop:"20px",flexWrap:"wrap"}}>
         <button onClick={onClose} style={{background:"transparent",color:"#555",border:"1px solid #2a2a2a",borderRadius:"8px",padding:"8px 18px",fontSize:"12px",fontFamily:"'DM Mono',monospace",cursor:"pointer"}}>Cancel</button>
         <button onClick={generate} disabled={loading} style={{background:"#1e1e3a",color:"#7c83ff",border:"1px solid #2d2d5e",borderRadius:"8px",padding:"8px 18px",fontSize:"12px",fontFamily:"'DM Mono',monospace",fontWeight:600,cursor:"pointer"}}>↺ Regenerate</button>
         <button onClick={()=>navigator.clipboard?.writeText(text)} style={{background:"#111",color:"#56ccf2",border:"1px solid #1a3040",borderRadius:"8px",padding:"8px 18px",fontSize:"12px",fontFamily:"'DM Mono',monospace",cursor:"pointer"}}>⎘ Copy</button>
-        <button onClick={()=>{onSave(text);onClose();}} disabled={!text||loading} style={{background:text&&!loading?"#e8e4dc":"#1a1a1a",color:text&&!loading?"#0d0d0d":"#333",border:"none",borderRadius:"8px",padding:"8px 20px",fontSize:"12px",fontFamily:"'Syne',sans-serif",fontWeight:700,cursor:text&&!loading?"pointer":"not-allowed"}}>Save Proposal →</button>
+        <button onClick={()=>{onSave(text);onClose();}} disabled={!text||loading} style={{background:text&&!loading?"#e8e4dc":"#0d0d0d",color:text&&!loading?"#0d0d0d":"#333",border:"none",borderRadius:"8px",padding:"8px 20px",fontSize:"12px",fontFamily:"'Syne',sans-serif",fontWeight:700,cursor:text&&!loading?"pointer":"not-allowed"}}>Save Proposal →</button>
       </div>
     </div>
   </div>;
@@ -131,7 +130,7 @@ function ProposalModal({row,agencyContext,onClose,onSave}){
 function App(){
   const [rows,setRows]=useState([]);
   const [syncStatus,setSyncStatus]=useState("loading");
-  const [expandedRow,setExpandedRow]=null;
+  const [expandedRow,setExpandedRow]=useState(null);
   const [loadingId,setLoadingId]=useState(null);
   const [savingId,setSavingId]=useState(null);
   const [showAddModal,setShowAddModal]=useState(false);
@@ -155,13 +154,13 @@ function App(){
           if(String(header[0]).toLowerCase()==="id"){
             const parsed=dataRows.map(rowToObj).filter(r=>r.id);
             setRows(parsed);lsSave(parsed);setSyncStatus("online");
-            showToast(`Loaded ${parsed.length} jobs from Google Sheets`);
+            showToast(`Loaded ${parsed.length} items from Google Sheets`);
             return;
           }
         }
         if(Array.isArray(raw)&&raw.length===0){
           await gsPost({action:"init",headers:HEADERS});
-          setSyncStatus("online");showToast("Google Sheets connected");return;
+          setSyncStatus("online");showToast("Google Sheets structural sync complete");return;
         }
         setSyncStatus("online");
       }catch(e){setSyncStatus("offline");}
@@ -194,26 +193,26 @@ function App(){
     });
   };
 
-  const runClaude=async(row)=>{
+  const runGemini=async(row)=>{
     setLoadingId(row.id);
     try{
-      // Safe proxy request routing through Apps Script backend
       const data = await gsPost({
         action: "claude-analyse",
         jobText: row.jobText
       });
       
       if(data.status === "ok") {
-        const parsed=JSON.parse(data.text.replace(/```json|```/g,"").trim());
+        const cleanedJson = data.text.replace(/```json|```/g, "").trim();
+        const parsed=JSON.parse(cleanedJson);
         const updated={...row,claudeSummary:parsed.summary||"",claudeHours:parsed.hours||"",complexity:parsed.complexity||"—",claudePricing:parsed.pricing||"",status:"Under Review"};
         setRows(prev=>{const u=prev.map(r=>r.id===row.id?updated:r);lsSave(u);return u;});
         saveRow(updated);
-        showToast("Analysis complete & synced");
+        showToast("Gemini Analysis loaded & synced");
       } else {
-        showToast(`Analysis failed: ${data.message}`,"error");
+        showToast(`Analysis rejected: ${data.message}`,"error");
       }
     }catch(e){
-      showToast(`Network configuration issue: ${e.message}`,"error");
+      showToast("Parsing validation broke. Verify raw script execution responses.","error");
     }
     setLoadingId(null);
   };
@@ -222,29 +221,29 @@ function App(){
     const nr={id:String(Date.now()),date:new Date().toISOString().slice(0,16).replace("T"," "),url:newJob.url,jobText:newJob.jobText,claudeSummary:"",claudeHours:"",complexity:"—",claudePricing:"",smeHours:"",bdPrice:"",connects:newJob.connects,proposal:"",notes:"",status:"New"};
     setRows(prev=>{const u=[nr,...prev];lsSave(u);return u;});
     setNewJob({url:"",jobText:"",connects:""});setShowAddModal(false);
-    saveRow(nr);showToast("Job added");
+    saveRow(nr);showToast("Job added into workspace pipeline");
   };
 
-  const saveAgencyContext=ctx=>{localStorage.setItem("upwork_agency_context",ctx);setAgencyContext(ctx);setShowContextEditor(false);showToast("Agency profile saved");};
+  const saveAgencyContext=ctx=>{localStorage.setItem("upwork_agency_context",ctx);setAgencyContext(ctx);setShowContextEditor(false);showToast("Agency criteria cached");};
 
   const downloadCSV=()=>{
     const esc=v=>`"${String(v||"").replace(/"/g,'""')}"`;
     const lines=[HEADERS.map(esc).join(","),...rows.map(r=>HEADERS.map(h=>esc(r[h])).join(","))];
-    const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([lines.join("\n")],{type:"text/csv;charset=utf-8;"}));a.download=`upwork-tracker-${new Date().toISOString().slice(0,10)}.csv`;a.click();showToast("CSV downloaded");
+    const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([lines.join("\n")],{type:"text/csv;charset=utf-8;"}));a.download=`upwork-tracker-${new Date().toISOString().slice(0,10)}.csv`;a.click();showToast("CSV file compiled");
   };
 
   const btn={border:"1px solid #2a2a2a",borderRadius:"8px",padding:"7px 14px",fontSize:"11px",fontFamily:"'DM Mono',monospace",fontWeight:600,cursor:"pointer",display:"inline-flex",alignItems:"center",gap:"6px",whiteSpace:"nowrap"};
-  const COLS=[{l:"DATE",w:"105px"},{l:"URL",w:"90px"},{l:"A — JOB POST",w:"180px"},{l:"B — SUMMARY",w:"180px"},{l:"C — HOURS",w:"85px"},{l:"COMPLEXITY",w:"90px"},{l:"D — RATE",w:"95px"},{l:"E — SME HRS",w:"85px"},{l:"F — BD PRICE",w:"90px"},{l:"CONNECTS",w:"75px"},{l:"PROPOSAL",w:"90px"},{l:"NOTES",w:"150px"},{l:"G — STATUS",w:"120px"},{l:"AI",w:"65px"}];
+  const COLS=[{l:"DATE",w:"105px"},{l:"URL",w:"90px"},{l:"A — JOB POST",w:"180px"},{l:"B — GEMINI SUMMARY",w:"180px"},{l:"C — EST HOURS",w:"85px"},{l:"COMPLEXITY",w:"90px"},{l:"D — BUDGET",w:"95px"},{l:"E — SME HRS",w:"85px"},{l:"F — BD PRICE",w:"90px"},{l:"CONNECTS",w:"75px"},{l:"PROPOSAL",w:"90px"},{l:"NOTES",w:"150px"},{l:"G — STATUS",w:"120px"},{l:"AI ENGINE",w:"65px"}];
   const dotCol=syncStatus==="online"?"#27ae60":syncStatus==="offline"?"#eb5757":"#f2994a";
-  const dotLabel=syncStatus==="online"?`Live · Google Sheets · ${rows.length} jobs`:syncStatus==="offline"?"Offline · local only":"Connecting to Google Sheets…";
+  const dotLabel=syncStatus==="online"?`Live · Connected Spreadsheet · ${rows.length} records`:syncStatus==="offline"?"Offline · Sandbox mode":"Verifying connection grid…";
 
   return <div style={{minHeight:"100vh",background:"#0d0d0d",padding:"32px 24px"}}>
 
-    {/* Header */}
+    {/* Header Section */}
     <div style={{marginBottom:"28px",display:"flex",alignItems:"flex-end",justifyContent:"space-between",flexWrap:"wrap",gap:"16px"}}>
       <div>
-        <div style={{color:"#444",fontSize:"11px",letterSpacing:"0.2em",marginBottom:"6px"}}>AUTOMATION CONSULTANCY</div>
-        <h1 style={{color:"#e8e4dc",fontFamily:"'Syne',sans-serif",fontSize:"26px",fontWeight:800,letterSpacing:"-0.02em"}}>Upwork Bid Tracker</h1>
+        <div style={{color:"#444",fontSize:"11px",letterSpacing:"0.2em",marginBottom:"6px"}}>AUTOMATION AND WORKFLOW SOLUTIONS</div>
+        <h1 style={{color:"#e8e4dc",fontFamily:"'Syne',sans-serif",fontSize:"26px",fontWeight:800,letterSpacing:"-0.02em"}}>Upwork Bid Workspace</h1>
         <div style={{display:"flex",alignItems:"center",gap:"8px",marginTop:"6px"}}>
           <div style={{width:"6px",height:"6px",borderRadius:"50%",background:dotCol,boxShadow:syncStatus==="online"?"0 0 6px #27ae60":"none"}}/>
           <span style={{color:"#555",fontSize:"11px"}}>{dotLabel}</span>
@@ -255,46 +254,46 @@ function App(){
           {STATUS_FLOW.map(s=><span key={s} style={{background:STATUS_COLORS[s].bg,color:STATUS_COLORS[s].text,border:`1px solid ${STATUS_COLORS[s].border}`,borderRadius:"20px",padding:"3px 10px",fontSize:"10px",fontWeight:600}}>{rows.filter(r=>r.status===s).length} {s}</span>)}
         </div>
         <div style={{display:"flex",gap:"8px"}}>
-          <button onClick={()=>setShowContextEditor(true)} style={{...btn,background:agencyContext.includes("PASTE YOUR")?"#2a1a0e":"#111",color:agencyContext.includes("PASTE YOUR")?"#f2994a":"#888",borderColor:agencyContext.includes("PASTE YOUR")?"#4d3520":"#2a2a2a"}}>{agencyContext.includes("PASTE YOUR")?"⚠ Set Agency Profile":"✎ Agency Profile"}</button>
-          <button onClick={downloadCSV} style={{...btn,background:"#111",color:"#56ccf2",borderColor:"#1a3040"}}>↓ CSV</button>
-          <button onClick={()=>setShowAddModal(true)} style={{...btn,background:"#e8e4dc",color:"#0d0d0d",border:"none",fontFamily:"'Syne',sans-serif",fontSize:"12px"}}>+ Add Job</button>
+          <button onClick={()=>setShowContextEditor(true)} style={{...btn,background:agencyContext.includes("PASTE YOUR")?"#2a1a0e":"#111",color:agencyContext.includes("PASTE YOUR")?"#f2994a":"#888",borderColor:agencyContext.includes("PASTE YOUR")?"#4d3520":"#2a2a2a"}}>{agencyContext.includes("PASTE YOUR")?"⚠ Setup Agency Context":"✎ Agency Profile"}</button>
+          <button onClick={downloadCSV} style={{...btn,background:"#111",color:"#56ccf2",borderColor:"#1a3040"}}>↓ Export</button>
+          <button onClick={()=>setShowAddModal(true)} style={{...btn,background:"#e8e4dc",color:"#0d0d0d",border:"none",fontFamily:"'Syne',sans-serif",fontSize:"12px"}}>+ Add Position</button>
         </div>
       </div>
     </div>
 
-    {/* Table */}
+    {/* Pipeline Table Data Grid */}
     <div style={{overflowX:"auto",borderRadius:"12px",border:"1px solid #1e1e1e"}}>
       <table style={{width:"100%",borderCollapse:"collapse",minWidth:"1450px"}}>
         <thead><tr style={{background:"#111"}}>{COLS.map(c=><th key={c.l} style={{padding:"10px 12px",textAlign:"left",fontSize:"9px",color:"#555",letterSpacing:"0.15em",fontWeight:600,borderBottom:"1px solid #1e1e1e",width:c.w,whiteSpace:"nowrap"}}>{c.l}</th>)}</tr></thead>
         <tbody>
-          {rows.length===0&&<tr><td colSpan={14} style={{padding:"48px",textAlign:"center",color:"#333",fontSize:"13px"}}>No jobs yet — click + Add Job to get started</td></tr>}
+          {rows.length===0&&<tr><td colSpan={14} style={{padding:"48px",textAlign:"center",color:"#333",fontSize:"13px"}}>Pipeline structural queue empty. Tap '+ Add Position' to map targets.</td></tr>}
           {rows.map((row,i)=><React.Fragment key={row.id}>
             <tr style={{background:i%2===0?"#0d0d0d":"#101010",borderBottom:expandedRow===row.id?"none":"1px solid #181818"}}>
               <td style={{padding:"10px 12px",color:savingId===row.id?"#7c83ff":"#444",fontSize:"11px",whiteSpace:"nowrap"}}>{savingId===row.id?"syncing…":row.date}</td>
-              <td style={{padding:"10px 12px"}}><EditableCell value={row.url} onChange={v=>updateRow(row.id,"url",v)} placeholder="paste URL"/></td>
-              <td style={{padding:"10px 12px"}}><div style={{cursor:"pointer",color:row.jobText?"#e8e4dc":"#444",fontSize:"12px",lineHeight:"1.4"}} onClick={()=>setExpandedRow(expandedRow===row.id?null:row.id)}>{row.jobText?row.jobText.slice(0,75)+(row.jobText.length>75?"…":""):"no text"}</div></td>
-              <td style={{padding:"10px 12px"}}><EditableCell value={row.claudeSummary} onChange={v=>updateRow(row.id,"claudeSummary",v)} placeholder="run AI →" multiline/></td>
+              <td style={{padding:"10px 12px"}}><EditableCell value={row.url} onChange={v=>updateRow(row.id,"url",v)} placeholder="Insert Link"/></td>
+              <td style={{padding:"10px 12px"}}><div style={{cursor:"pointer",color:row.jobText?"#e8e4dc":"#444",fontSize:"12px",lineHeight:"1.4"}} onClick={()=>setExpandedRow(expandedRow===row.id?null:row.id)}>{row.jobText?row.jobText.slice(0,75)+(row.jobText.length>75?"…":""):"View Details"}</div></td>
+              <td style={{padding:"10px 12px"}}><EditableCell value={row.claudeSummary} onChange={v=>updateRow(row.id,"claudeSummary",v)} placeholder="Trigger Gemini AI →" multiline/></td>
               <td style={{padding:"10px 12px"}}><span style={{color:row.claudeHours?"#c9b8ff":"#333",fontSize:"12px"}}>{row.claudeHours||"—"}</span></td>
               <td style={{padding:"10px 12px"}}><span style={{color:CX[row.complexity]||"#555",fontSize:"11px",fontWeight:600}}>{row.complexity||"—"}</span></td>
               <td style={{padding:"10px 12px"}}><span style={{color:row.claudePricing?"#6fcf97":"#333",fontSize:"12px"}}>{row.claudePricing||"—"}</span></td>
               <td style={{padding:"10px 12px"}}><EditableCell value={row.smeHours} onChange={v=>updateRow(row.id,"smeHours",v)} placeholder="hrs"/></td>
-              <td style={{padding:"10px 12px"}}><EditableCell value={row.bdPrice} onChange={v=>updateRow(row.id,"bdPrice",v)} placeholder="e.g. $40/hr"/></td>
+              <td style={{padding:"10px 12px"}}><EditableCell value={row.bdPrice} onChange={v=>updateRow(row.id,"bdPrice",v)} placeholder="quote rate"/></td>
               <td style={{padding:"10px 12px"}}><div style={{display:"flex",alignItems:"center",gap:"4px"}}><EditableCell value={row.connects} onChange={v=>updateRow(row.id,"connects",v)} placeholder="—"/>{row.connects&&<span style={{color:"#f2994a",fontSize:"10px"}}>🔗</span>}</div></td>
-              <td style={{padding:"10px 12px"}}><button onClick={()=>setProposalRow(row)} disabled={!row.jobText} style={{background:row.proposal?"#0a2a0a":"#1e1e3a",color:row.proposal?"#27ae60":"#7c83ff",border:`1px solid ${row.proposal?"#1a4d1a":"#2d2d5e"}`,borderRadius:"6px",padding:"4px 10px",fontSize:"10px",fontFamily:"'DM Mono',monospace",fontWeight:600,cursor:row.jobText?"pointer":"not-allowed",whiteSpace:"nowrap"}}>{row.proposal?"✓ Edit":"✦ Draft"}</button></td>
-              <td style={{padding:"10px 12px"}}><EditableCell value={row.notes} onChange={v=>updateRow(row.id,"notes",v)} placeholder="add note…" multiline/></td>
-              <td style={{padding:"10px 12px"}}><StatusBadge status={row.status} onChange={v=>updateRow(row.id,"status",v)}/></td>
-              <td style={{padding:"10px 12px"}}><button onClick={()=>runClaude(row)} disabled={!row.jobText||loadingId===row.id} style={{background:loadingId===row.id?"#1a1a2e":"#1e1e3a",color:loadingId===row.id?"#7c83ff88":"#7c83ff",border:"1px solid #2d2d5e",borderRadius:"6px",padding:"5px 10px",fontSize:"10px",fontFamily:"'DM Mono',monospace",fontWeight:600,cursor:row.jobText&&loadingId!==row.id?"pointer":"not-allowed"}...}>{loadingId===row.id?"…":"✦"}</button></td>
+              <td style={{padding:"10px 12px"}}><button onClick={()=>setProposalRow(row)} disabled={!row.jobText} style={{background:row.proposal?"#0a2a0a":"#1e1e3a",color:row.proposal?"#27ae60":"#7c83ff",border:`1px solid ${row.proposal?"#1a4d1a":"#2d2d5e"}`,borderRadius:"6px",padding:"4px 10px",fontSize:"10px",fontFamily:"'DM Mono',monospace",fontWeight:600,cursor:row.jobText?"pointer":"not-allowed",whiteSpace:"nowrap"}}>{row.proposal?"✓ Edit Copy":"✦ Gemini Draft"}</button></td>
+              <td style={{padding:"10px 12px"}}><EditableCell value={row.notes} onChange={v=>updateRow(row.id,"notes",v)} placeholder="Add transaction note…" multiline/></td>
+              <td style={{padding:"10px 12px"}...}><StatusBadge status={row.status} onChange={v=>updateRow(row.id,"status",v)}/></td>
+              <td style={{padding:"10px 12px"}}><button onClick={()=>runGemini(row)} disabled={!row.jobText||loadingId===row.id} style={{background:loadingId===row.id?"#1a1a2e":"#1e1e3a",color:loadingId===row.id?"#7c83ff88":"#7c83ff",border:"1px solid #2d2d5e",borderRadius:"6px",padding:"5px 10px",fontSize:"10px",fontFamily:"'DM Mono',monospace",fontWeight:600,cursor:row.jobText&&loadingId!==row.id?"pointer":"not-allowed"}}>{loadingId===row.id?"…":"Run AI"}</button></td>
             </tr>
             {expandedRow===row.id&&<tr style={{background:"#0a0a12",borderBottom:"1px solid #1e1e1e"}}>
               <td colSpan={14} style={{padding:"16px 20px"}}>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"20px"}}>
                   <div>
-                    <div style={{color:"#555",fontSize:"9px",letterSpacing:"0.15em",marginBottom:"8px"}}>FULL JOB POST</div>
+                    <div style={{color:"#555",fontSize:"9px",letterSpacing:"0.15em",marginBottom:"8px"}}>SOURCE TARGET DESCRIPTION</div>
                     <textarea value={row.jobText} onChange={e=>updateRow(row.id,"jobText",e.target.value)} rows={6} style={{width:"100%",background:"#111",border:"1px solid #222",borderRadius:"6px",color:"#e8e4dc",fontSize:"12px",fontFamily:"'DM Mono',monospace",padding:"10px",resize:"vertical",outline:"none",lineHeight:"1.6"}}/>
                   </div>
                   <div>
-                    <div style={{color:"#555",fontSize:"9px",letterSpacing:"0.15em",marginBottom:"8px"}}>PIPELINE CHECKLIST</div>
-                    {[{l:"BD added job post",d:!!row.jobText},{l:"Claude analysis run",d:!!row.claudeSummary},{l:"Connects logged",d:!!row.connects},{l:"SME reviewed & added hours",d:!!row.smeHours},{l:"BD set final price",d:!!row.bdPrice},{l:"Proposal drafted",d:!!row.proposal},{l:"Proposal submitted",d:["Proposal Sent","Won","Lost"].includes(row.status)}].map(s=>(
+                    <div style={{color:"#555",fontSize:"9px",letterSpacing:"0.15em",marginBottom:"8px"}}>OPERATIONAL CHECKLIST GRID</div>
+                    {[{l:"Target logged in pipeline",d:!!row.jobText},{l:"Gemini structural parameter analysis run",d:!!row.claudeSummary},{l:"Token connects tracked",d:!!row.connects},{l:"Technical assessment complete",d:!!row.smeHours},{l:"Strategic price alignment mapped",d:!!row.bdPrice},{l:"Pitch draft created",d:!!row.proposal},{l:"Contract transaction complete",d:["Proposal Sent","Won","Lost"].includes(row.status)}].map(s=>(
                       <div key={s.l} style={{display:"flex",alignItems:"center",gap:"10px",marginBottom:"8px"}}>
                         <span style={{width:"16px",height:"16px",borderRadius:"4px",background:s.d?"#0a2a0a":"#1a1a1a",border:`1px solid ${s.d?"#27ae60":"#2a2a2a"}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"9px",color:s.d?"#27ae60":"#333",flexShrink:0}}>{s.d?"✓":""}</span>
                         <span style={{color:s.d?"#888":"#444",fontSize:"12px",textDecoration:s.d?"line-through":"none"}}>{s.l}</span>
@@ -314,38 +313,38 @@ function App(){
     {/* Add Modal */}
     {showAddModal&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:999}}>
       <div style={{background:"#111",border:"1px solid #2a2a2a",borderRadius:"16px",padding:"32px",width:"540px",maxWidth:"92vw"}}>
-        <h2 style={{color:"#e8e4dc",fontFamily:"'Syne',sans-serif",fontWeight:800,margin:"0 0 24px",fontSize:"20px"}}>Add Upwork Job</h2>
-        {[{label:"JOB URL",key:"url",ph:"https://upwork.com/jobs/…"},{label:"CONNECTS REQUIRED",key:"connects",ph:"e.g. 6"}].map(f=>(
+        <h2 style={{color:"#e8e4dc",fontFamily:"'Syne',sans-serif",fontWeight:800,margin:"0 0 24px",fontSize:"20px"}}>Log Upwork Target</h2>
+        {[{label:"TARGET POSITION LINK",key:"url",ph:"https://upwork.com/jobs/…"},{label:"CONNECTS BUDGET",key:"connects",ph:"e.g. 16"}].map(f=>(
           <div key={f.key} style={{marginBottom:"16px"}}>
             <label style={{color:"#555",fontSize:"10px",letterSpacing:"0.15em",display:"block",marginBottom:"6px"}}>{f.label}</label>
             <input value={newJob[f.key]} onChange={e=>setNewJob({...newJob,[f.key]:e.target.value})} placeholder={f.ph} style={{width:"100%",background:"#1a1a1a",border:"1px solid #2a2a2a",borderRadius:"8px",color:"#e8e4dc",padding:"10px 12px",fontSize:"12px",fontFamily:"'DM Mono',monospace",outline:"none"}}/>
           </div>
         ))}
         <div style={{marginBottom:"24px"}}>
-          <label style={{color:"#555",fontSize:"10px",letterSpacing:"0.15em",display:"block",marginBottom:"6px"}}>PASTE JOB POST TEXT</label>
-          <textarea value={newJob.jobText} onChange={e=>setNewJob({...newJob,jobText:e.target.value})} rows={6} placeholder="Paste the full Upwork job description here…" style={{width:"100%",background:"#1a1a1a",border:"1px solid #2a2a2a",borderRadius:"8px",color:"#e8e4dc",padding:"10px 12px",fontSize:"12px",fontFamily:"'DM Mono',monospace",outline:"none",resize:"vertical",lineHeight:"1.6"}}/>
+          <label style={{color:"#555",fontSize:"10px",letterSpacing:"0.15em",display:"block",marginBottom:"6px"}}>PASTE TARGET BODY TEXT</label>
+          <textarea value={newJob.jobText} onChange={e=>setNewJob({...newJob,jobText:e.target.value})} rows={6} placeholder="Paste raw Upwork description parameters here…" style={{width:"100%",background:"#1a1a1a",border:"1px solid #2a2a2a",borderRadius:"8px",color:"#e8e4dc",padding:"10px 12px",fontSize:"12px",fontFamily:"'DM Mono',monospace",outline:"none",resize:"vertical",lineHeight:"1.6"}}/>
         </div>
         <div style={{display:"flex",gap:"10px",justifyContent:"flex-end"}}>
           <button onClick={()=>setShowAddModal(false)} style={{background:"transparent",color:"#555",border:"1px solid #2a2a2a",borderRadius:"8px",padding:"8px 20px",fontSize:"12px",fontFamily:"'DM Mono',monospace",cursor:"pointer"}}>Cancel</button>
-          <button onClick={addJob} disabled={!newJob.jobText} style={{background:newJob.jobText?"#e8e4dc":"#1a1a1a",color:newJob.jobText?"#0d0d0d":"#333",border:"none",borderRadius:"8px",padding:"8px 20px",fontSize:"12px",fontFamily:"'Syne',sans-serif",fontWeight:700,cursor:newJob.jobText?"pointer":"not-allowed"}}>Add Job →</button>
+          <button onClick={addJob} disabled={!newJob.jobText} style={{background:newJob.jobText?"#e8e4dc":"#0d0d0d",color:newJob.jobText?"#0d0d0d":"#333",border:"none",borderRadius:"8px",padding:"8px 20px",fontSize:"12px",fontFamily:"'Syne',sans-serif",fontWeight:700,cursor:newJob.jobText?"pointer":"not-allowed"}}>Commit to Flow →</button>
         </div>
       </div>
     </div>}
 
-    {/* Agency Editor */}
+    {/* Agency Framework Profile Editor */}
     {showContextEditor&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.88)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:999}}>
       <div style={{background:"#111",border:"1px solid #2a2a2a",borderRadius:"16px",padding:"32px",width:"620px",maxWidth:"92vw"}}>
-        <h2 style={{color:"#e8e4dc",fontFamily:"'Syne',sans-serif",fontWeight:800,margin:"0 0 8px",fontSize:"18px"}}>Agency Profile</h2>
-        <p style={{color:"#555",fontSize:"12px",marginBottom:"20px",lineHeight:"1.6"}}>Paste your agency bio, specialisms, and differentiators. Claude uses this to write tailored proposals.</p>
+        <h2 style={{color:"#e8e4dc",fontFamily:"'Syne',sans-serif",fontWeight:800,margin:"0 0 8px",fontSize:"18px"}}>Consultancy Framework Profile</h2>
+        <p style={{color:"#555",fontSize:"12px",marginBottom:"20px",lineHeight:"1.6"}}>Paste core company metrics, strategic capability structures, and differentiators. The Gemini engine ingests this system profile context to build conversion-engineered pitch copy.</p>
         <textarea value={agencyContext} onChange={e=>setAgencyContext(e.target.value)} rows={12} style={{width:"100%",background:"#0d0d0d",border:"1px solid #2a2a2a",borderRadius:"10px",color:"#e8e4dc",padding:"14px",fontSize:"12px",fontFamily:"'DM Mono',monospace",lineHeight:"1.7",outline:"none",resize:"vertical",boxSizing:"border-box"}}/>
         <div style={{display:"flex",gap:"10px",justifyContent:"flex-end",marginTop:"20px"}}>
           <button onClick={()=>setShowContextEditor(false)} style={{background:"transparent",color:"#555",border:"1px solid #2a2a2a",borderRadius:"8px",padding:"8px 20px",fontSize:"12px",fontFamily:"'DM Mono',monospace",cursor:"pointer"}}>Cancel</button>
-          <button onClick={()=>saveAgencyContext(agencyContext)} style={{background:"#e8e4dc",color:"#0d0d0d",border:"none",borderRadius:"8px",padding:"8px 20px",fontSize:"12px",fontFamily:"'Syne',sans-serif",fontWeight:700,cursor:"pointer"}}>Save Profile →</button>
+          <button onClick={()=>saveAgencyContext(agencyContext)} style={{background:"#e8e4dc",color:"#0d0d0d",border:"none",borderRadius:"8px",padding:"8px 20px",fontSize:"12px",fontFamily:"'Syne',sans-serif",fontWeight:700,cursor:"pointer"}}>Save System Configuration →</button>
         </div>
       </div>
     </div>}
 
-    {proposalRow&&<ProposalModal key={proposalRow.id} row={proposalRow} agencyContext={agencyContext} onClose={()=>setProposalRow(null)} onSave={text=>{updateRow(proposalRow.id,"proposal",text);showToast("Proposal saved & synced");}}/>}
+    {proposalRow&&<ProposalModal key={proposalRow.id} row={proposalRow} agencyContext={agencyContext} onClose={()=>setProposalRow(null)} onSave={text=>{updateRow(proposalRow.id,"proposal",text);showToast("Pitch file updated successfully");}}/>}
     {toast&&<Toast message={toast.msg} type={toast.type} onDone={()=>setToast(null)}/>}
   </div>;
 }
