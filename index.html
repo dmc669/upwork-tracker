@@ -21,8 +21,8 @@
 <div id="root"></div>
 <script type="text/babel">
 
-// Google Apps Script Web App Endpoint
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz9TFDJ03XmAaWCUjIp7UM9PVZSZgq9zK25pfDfZw4YpEe6BEETERcMBT3p-4Nl8mJ-/exec"; 
+// Google Apps Script Routing URL
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz9TFDJ03XmAaWCUjIp7UM9PVZSZgq9zK25pfDfZw4YpEe6BEETERcMBT3p-4Nl8mJ-/exec";
 
 const HEADERS = ["id","date","url","jobText","claudeSummary","claudeHours","complexity","claudePricing","smeHours","bdPrice","connects","proposal","notes","status"];
 const STATUS_FLOW = ["New","Under Review","SME Assessed","Proposal Sent","Won","Lost"];
@@ -78,7 +78,7 @@ function EditableCell({value,onChange,placeholder="—",multiline=false}){
 function Toast({message,type="success",onDone}){
   useEffect(()=>{const t=setTimeout(onDone,3000);return()=>clearTimeout(t);},[]);
   const col=type==="error"?"#eb5757":type==="warn"?"#f2994a":"#27ae60";
-  return <div style={{position:"fixed",bottom:"28px",left:"50%",transform:"translateX(-50%)",background:"#1e1e1e",border:"1px solid #2a2a2a",color:"#e8e4dc",padding:"10px 22px",borderRadius:"10px",fontSize:"12px",fontFamily:"'DM Mono',monospace",zIndex:9999,boxShadow:"0 4px 24px rgba(0,0,0,.5)",display:"flex",alignItems:"center",gap:"8px"}..span style={{color:col}}>{type==="error"?"✕":"✓"}</span>{message}</div>;
+  return <div style={{position:"fixed",bottom:"28px",left:"50%",transform:"translateX(-50%)",background:"#1e1e1e",border:"1px solid #2a2a2a",color:"#e8e4dc",padding:"10px 22px",borderRadius:"10px",fontSize:"12px",fontFamily:"'DM Mono',monospace",zIndex:9999,boxShadow:"0 4px 24px rgba(0,0,0,.5)",display:"flex",alignItems:"center",gap:"8px"}}><span style={{color:col}}>{type==="error"?"✕":"✓"}</span>{message}</div>;
 }
 
 function ProposalModal({row,agencyContext,onClose,onSave}){
@@ -88,23 +88,27 @@ function ProposalModal({row,agencyContext,onClose,onSave}){
   const generate=useCallback(async()=>{
     setLoading(true);setText("");
     try{
+      // Safe routing via Apps Script Web App backend proxy router
       const data = await gsPost({
         action: "claude-proposal",
-        agencyContext: agencyContext,
         jobText: row.jobText,
+        agencyContext: agencyContext,
         claudeSummary: row.claudeSummary,
         claudeHours: row.claudeHours,
         complexity: row.complexity
       });
+      
       if(data.status === "ok") {
-        setText(data.text);
+        setText(data.text.trim());
       } else {
-        setText(`Error drafting response: ${data.message}`);
+        setText(`Backend API Error: ${data.message || "Unknown error occurred"}`);
       }
-    }catch{setText("Error generating — please check connection.");}
+    }catch(err){
+      setText("Error calling proxy service — check backend script logs.");
+    }
     setLoading(false);
   },[row,agencyContext]);
-
+  
   useEffect(()=>{if(!row.proposal)generate();},[]);
   return <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.88)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:999}}>
     <div style={{background:"#111",border:"1px solid #2a2a2a",borderRadius:"16px",padding:"32px",width:"620px",maxWidth:"92vw",maxHeight:"90vh",overflow:"auto"}}>
@@ -118,7 +122,7 @@ function ProposalModal({row,agencyContext,onClose,onSave}){
         <button onClick={onClose} style={{background:"transparent",color:"#555",border:"1px solid #2a2a2a",borderRadius:"8px",padding:"8px 18px",fontSize:"12px",fontFamily:"'DM Mono',monospace",cursor:"pointer"}}>Cancel</button>
         <button onClick={generate} disabled={loading} style={{background:"#1e1e3a",color:"#7c83ff",border:"1px solid #2d2d5e",borderRadius:"8px",padding:"8px 18px",fontSize:"12px",fontFamily:"'DM Mono',monospace",fontWeight:600,cursor:"pointer"}}>↺ Regenerate</button>
         <button onClick={()=>navigator.clipboard?.writeText(text)} style={{background:"#111",color:"#56ccf2",border:"1px solid #1a3040",borderRadius:"8px",padding:"8px 18px",fontSize:"12px",fontFamily:"'DM Mono',monospace",cursor:"pointer"}}>⎘ Copy</button>
-        <button onClick={()=>{onSave(text);onClose();}} disabled={!text||loading} style={{background:text&&!loading?"#e8e4dc":"#0d0d0d",color:text&&!loading?"#0d0d0d":"#333",border:"none",borderRadius:"8px",padding:"8px 20px",fontSize:"12px",fontFamily:"'Syne',sans-serif",fontWeight:700,cursor:text&&!loading?"pointer":"not-allowed"}}>Save Proposal →</button>
+        <button onClick={()=>{onSave(text);onClose();}} disabled={!text||loading} style={{background:text&&!loading?"#e8e4dc":"#1a1a1a",color:text&&!loading?"#0d0d0d":"#333",border:"none",borderRadius:"8px",padding:"8px 20px",fontSize:"12px",fontFamily:"'Syne',sans-serif",fontWeight:700,cursor:text&&!loading?"pointer":"not-allowed"}}>Save Proposal →</button>
       </div>
     </div>
   </div>;
@@ -127,7 +131,7 @@ function ProposalModal({row,agencyContext,onClose,onSave}){
 function App(){
   const [rows,setRows]=useState([]);
   const [syncStatus,setSyncStatus]=useState("loading");
-  const [expandedRow,setExpandedRow]=useState(null);
+  const [expandedRow,setExpandedRow]=null;
   const [loadingId,setLoadingId]=useState(null);
   const [savingId,setSavingId]=useState(null);
   const [showAddModal,setShowAddModal]=useState(false);
@@ -193,16 +197,24 @@ function App(){
   const runClaude=async(row)=>{
     setLoadingId(row.id);
     try{
-      const data = await gsPost({action: "claude-analyse", jobText: row.jobText});
+      // Safe proxy request routing through Apps Script backend
+      const data = await gsPost({
+        action: "claude-analyse",
+        jobText: row.jobText
+      });
+      
       if(data.status === "ok") {
         const parsed=JSON.parse(data.text.replace(/```json|```/g,"").trim());
         const updated={...row,claudeSummary:parsed.summary||"",claudeHours:parsed.hours||"",complexity:parsed.complexity||"—",claudePricing:parsed.pricing||"",status:"Under Review"};
         setRows(prev=>{const u=prev.map(r=>r.id===row.id?updated:r);lsSave(u);return u;});
-        saveRow(updated);showToast("Analysis complete & synced");
+        saveRow(updated);
+        showToast("Analysis complete & synced");
       } else {
-        showToast(`Analysis failed: ${data.message}`, "error");
+        showToast(`Analysis failed: ${data.message}`,"error");
       }
-    }catch(e){showToast(`Analysis error: ${e.message}`,"error");}
+    }catch(e){
+      showToast(`Network configuration issue: ${e.message}`,"error");
+    }
     setLoadingId(null);
   };
 
@@ -271,7 +283,7 @@ function App(){
               <td style={{padding:"10px 12px"}}><button onClick={()=>setProposalRow(row)} disabled={!row.jobText} style={{background:row.proposal?"#0a2a0a":"#1e1e3a",color:row.proposal?"#27ae60":"#7c83ff",border:`1px solid ${row.proposal?"#1a4d1a":"#2d2d5e"}`,borderRadius:"6px",padding:"4px 10px",fontSize:"10px",fontFamily:"'DM Mono',monospace",fontWeight:600,cursor:row.jobText?"pointer":"not-allowed",whiteSpace:"nowrap"}}>{row.proposal?"✓ Edit":"✦ Draft"}</button></td>
               <td style={{padding:"10px 12px"}}><EditableCell value={row.notes} onChange={v=>updateRow(row.id,"notes",v)} placeholder="add note…" multiline/></td>
               <td style={{padding:"10px 12px"}}><StatusBadge status={row.status} onChange={v=>updateRow(row.id,"status",v)}/></td>
-              <td style={{padding:"10px 12px"}}><button onClick={()=>runClaude(row)} disabled={!row.jobText||loadingId===row.id} style={{background:loadingId===row.id?"#1a1a2e":"#1e1e3a",color:loadingId===row.id?"#7c83ff88":"#7c83ff",border:"1px solid #2d2d5e",borderRadius:"6px",padding:"5px 10px",fontSize:"10px",fontFamily:"'DM Mono',monospace",fontWeight:600,cursor:row.jobText&&loadingId!==row.id?"pointer":"not-allowed"}}>{loadingId===row.id?"…":"✦"}</button></td>
+              <td style={{padding:"10px 12px"}}><button onClick={()=>runClaude(row)} disabled={!row.jobText||loadingId===row.id} style={{background:loadingId===row.id?"#1a1a2e":"#1e1e3a",color:loadingId===row.id?"#7c83ff88":"#7c83ff",border:"1px solid #2d2d5e",borderRadius:"6px",padding:"5px 10px",fontSize:"10px",fontFamily:"'DM Mono',monospace",fontWeight:600,cursor:row.jobText&&loadingId!==row.id?"pointer":"not-allowed"}...}>{loadingId===row.id?"…":"✦"}</button></td>
             </tr>
             {expandedRow===row.id&&<tr style={{background:"#0a0a12",borderBottom:"1px solid #1e1e1e"}}>
               <td colSpan={14} style={{padding:"16px 20px"}}>
@@ -315,7 +327,7 @@ function App(){
         </div>
         <div style={{display:"flex",gap:"10px",justifyContent:"flex-end"}}>
           <button onClick={()=>setShowAddModal(false)} style={{background:"transparent",color:"#555",border:"1px solid #2a2a2a",borderRadius:"8px",padding:"8px 20px",fontSize:"12px",fontFamily:"'DM Mono',monospace",cursor:"pointer"}}>Cancel</button>
-          <button onClick={addJob} disabled={!newJob.jobText} style={{background:newJob.jobText?"#e8e4dc":"#0d0d0d",color:newJob.jobText?"#0d0d0d":"#333",border:"none",borderRadius:"8px",padding:"8px 20px",fontSize:"12px",fontFamily:"'Syne',sans-serif",fontWeight:700,cursor:newJob.jobText?"pointer":"not-allowed"}}>Add Job →</button>
+          <button onClick={addJob} disabled={!newJob.jobText} style={{background:newJob.jobText?"#e8e4dc":"#1a1a1a",color:newJob.jobText?"#0d0d0d":"#333",border:"none",borderRadius:"8px",padding:"8px 20px",fontSize:"12px",fontFamily:"'Syne',sans-serif",fontWeight:700,cursor:newJob.jobText?"pointer":"not-allowed"}}>Add Job →</button>
         </div>
       </div>
     </div>}
@@ -333,7 +345,7 @@ function App(){
       </div>
     </div>}
 
-    {proposalRow&&<ProposalModal key={proposalRow.id} row={proposalRow} agencyContext={agencyContext} onClose={()=>setProposalRow(null)} onSave={text=>{updateRow(proposalRow.id,\"proposal\",text);showToast("Proposal saved & synced");}}/>}
+    {proposalRow&&<ProposalModal key={proposalRow.id} row={proposalRow} agencyContext={agencyContext} onClose={()=>setProposalRow(null)} onSave={text=>{updateRow(proposalRow.id,"proposal",text);showToast("Proposal saved & synced");}}/>}
     {toast&&<Toast message={toast.msg} type={toast.type} onDone={()=>setToast(null)}/>}
   </div>;
 }
